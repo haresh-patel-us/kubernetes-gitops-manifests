@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-default-deny
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+    # HTTPS egress only (APIs, container registries)
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - port: 443
+          protocol: TCP
